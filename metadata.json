@@ -1,0 +1,8 @@
+{
+  "name": "NOVA MUSIC",
+  "description": "Official website for NOVA MUSIC, a premium Android music player inspired by Liquid Glass design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

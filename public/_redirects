@@ -1,0 +1,2 @@
+# Cloudflare Pages automatically serves /index.html for React SPA routes when no 404.html exists.
+# No catch-all redirect rules are needed.
