@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { siteConfig, officialLogoSrc } from "../config/siteConfig";
 import { mediaAssets } from "../assets/media";
+import { useLatestRelease } from "../hooks/useLatestRelease";
 import { AndroidPlayerMockup } from "../components/AndroidPlayerMockup";
 import { NovaLogo } from "../components/NovaLogo";
 import { ScrollReveal } from "../components/ScrollReveal";
@@ -32,6 +33,7 @@ const themeSwatches = [
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   const shouldReduceMotion = useReducedMotion();
+  const { releaseInfo } = useLatestRelease();
   const [selectedSurface, setSelectedSurface] = useState<"obsidian" | "midnight" | "frosted">("midnight");
   const [glassIntensity, setGlassIntensity] = useState<"balanced" | "deep">("deep");
 
@@ -91,16 +93,21 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate("download")}
-                  className="liquid-button-primary inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  className="liquid-button-primary inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download NOVA MUSIC</span>
+                  <span>
+                    {releaseInfo?.isVerifiedReleaseAvailable &&
+                    releaseInfo.manifest
+                      ? `Download APK (v${releaseInfo.manifest.latestVersion})`
+                      : "Download APK"}
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onNavigate("pro")}
-                  className="liquid-glass inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-sm font-medium text-white hover:bg-white/[0.1] whitespace-nowrap shrink-0 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  className="liquid-glass inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-sm font-medium text-white hover:bg-white/[0.1] whitespace-nowrap shrink-0 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 >
                   <Sparkles className="w-4 h-4 text-sky-300" />
                   <span>Discover NOVA PRO</span>
@@ -110,8 +117,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               {/* Clean Metadata Row (No pills) */}
               <div className="pt-4 border-t border-white/[0.08] flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-zinc-400">
                 <div>
-                  <span className="text-zinc-500 block mb-0.5">Platform</span>
-                  <span className="text-zinc-200 font-medium">Android Smartphones</span>
+                  <span className="text-zinc-500 block mb-0.5">Latest Version</span>
+                  <span className="text-zinc-200 font-medium font-mono tabular-nums">
+                    {releaseInfo?.manifest
+                      ? `v${releaseInfo.manifest.latestVersion}${
+                          releaseInfo.fileSizeFormatted
+                            ? ` · ${releaseInfo.fileSizeFormatted}`
+                            : ""
+                        }`
+                      : "Android 8.0+"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block mb-0.5">Audio Engine</span>
@@ -570,7 +585,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 className="liquid-button-primary inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
               >
                 <Download className="w-4 h-4" />
-                <span>Go to Download</span>
+                <span>Download APK</span>
               </button>
               <button
                 type="button"
