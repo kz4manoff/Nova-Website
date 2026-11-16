@@ -1,0 +1,108 @@
+name: Sync Android Release Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      mandatory_update:
+        description: "Mark this update as mandatory"
+        required: false
+        type: boolean
+        default: false
+      minimum_supported_version:
+        description: "Minimum supported versionCode"
+        required: false
+        type: string
+        default: "1"
+  repository_dispatch:
+    types: [nova-music-release]
+
+permissions:
+  contents: write
+
+jobs:
+  sync-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Nova-Website
+        uses: actions/checkout@v4
+
+      - name: Fetch latest published NOVA MUSIC release and compute SHA-256
+        id: manifest
+        env:
+          INPUT_MANDATORY: ${{ inputs.mandatory_update }}
+          INPUT_MIN_SUPPORTED: ${{ inputs.minimum_supported_version }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/kz4manoff/Nova-Music/releases/latest)
+
+          TAG_NAME=$(echo "$RELEASE_JSON" | jq -r '.tag_name // empty')
+          APK_URL=$(echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name | endswith(".apk")) | .browser_download_url' | head -n 1)
+          RELEASE_BODY=$(echo "$RELEASE_JSON" | jq -r '.body // ""')
+
+          if [[ -z "$TAG_NAME" || -z "$APK_URL" ]]; then
+            echo "::error::No published GitHub Release with an .apk asset was found in kz4manoff/Nova-Music."
+            exit 1
+          fi
+
+          LATEST_VERSION="${TAG_NAME#v}"
+          LATEST_VERSION="${LATEST_VERSION#V}"
+
+          curl -fsSL -L -o /tmp/NOVA-MUSIC.apk "$APK_URL"
+          SHA256=$(sha256sum /tmp/NOVA-MUSIC.apk | awk '{print $1}')
+
+          VERSION_CODE=$(echo "$RELEASE_BODY" | sed -nE 's/.*\(Build ([0-9]+)\).*/\1/p' | head -n 1)
+          if [[ -z "$VERSION_CODE" ]]; then
+            GRADLE_FILE=$(curl -fsSL "https://raw.githubusercontent.com/kz4manoff/Nova-Music/${TAG_NAME}/app/build.gradle.kts")
+            VERSION_CODE=$(echo "$GRADLE_FILE" | grep -E 'System\.getenv\("NOVA_VERSION_CODE"\)' -A1 | tail -n1 | tr -dc '0-9')
+          fi
+
+          if [[ -z "$VERSION_CODE" || "$VERSION_CODE" -le 0 ]]; then
+            echo "::error::Could not determine a valid positive integer versionCode for ${TAG_NAME}."
+            exit 1
+          fi
+
+          MANDATORY_BOOL=false
+          if [[ "${INPUT_MANDATORY:-false}" == "true" ]]; then
+            MANDATORY_BOOL=true
+          fi
+
+          MIN_SUPPORTED="${INPUT_MIN_SUPPORTED:-1}"
+          if ! [[ "$MIN_SUPPORTED" =~ ^[0-9]+$ ]]; then
+            MIN_SUPPORTED=1
+          fi
+
+          NOTES="NOVA MUSIC v${LATEST_VERSION} release."
+
+          jq -n \
+            --arg latestVersion "$LATEST_VERSION" \
+            --argjson versionCode "$VERSION_CODE" \
+            --arg apkUrl "$APK_URL" \
+            --arg sha256 "$SHA256" \
+            --arg releaseNotes "$NOTES" \
+            --argjson mandatoryUpdate "$MANDATORY_BOOL" \
+            --argjson minimumSupportedVersion "$MIN_SUPPORTED" \
+            '{
+              latestVersion: $latestVersion,
+              versionCode: $versionCode,
+              apkUrl: $apkUrl,
+              sha256: $sha256,
+              releaseNotes: $releaseNotes,
+              mandatoryUpdate: $mandatoryUpdate,
+              minimumSupportedVersion: $minimumSupportedVersion
+            }' > public/update.json
+
+          cat public/update.json
+
+      - name: Commit and push updated public/update.json
+        run: |
+          if git diff --quiet public/update.json; then
+            echo "public/update.json is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/update.json
+          git commit -m "chore(update): sync manifest from latest Nova-Music release"
+          git push
