@@ -90,19 +90,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
               {/* Primary & Secondary CTAs */}
               <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button
-                  type="button"
-                  onClick={() => onNavigate("download")}
-                  className="liquid-button-primary inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>
-                    {releaseInfo?.isVerifiedReleaseAvailable &&
-                    releaseInfo.manifest
-                      ? `Download APK (v${releaseInfo.manifest.latestVersion})`
-                      : "Download APK"}
-                  </span>
-                </button>
+                {releaseInfo?.isVerifiedReleaseAvailable &&
+                releaseInfo.verifiedApkUrl &&
+                releaseInfo.manifest ? (
+                  <a
+                    href={releaseInfo.verifiedApkUrl}
+                    download={releaseInfo.apkFileName ?? "Nova.Music.apk"}
+                    rel="noopener noreferrer"
+                    onClick={() => onNavigate("download")}
+                    className="liquid-button-primary inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>
+                      Download APK v{releaseInfo.manifest.latestVersion}
+                    </span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("download")}
+                    className="liquid-button-primary inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>
+                      {releaseInfo?.manifest
+                        ? `Download APK v${releaseInfo.manifest.latestVersion}`
+                        : "Download APK"}
+                    </span>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -579,14 +595,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 shrink-0">
-              <button
-                type="button"
-                onClick={() => onNavigate("download")}
-                className="liquid-button-primary inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download APK</span>
-              </button>
+              {releaseInfo?.isVerifiedReleaseAvailable &&
+              releaseInfo.verifiedApkUrl &&
+              releaseInfo.manifest ? (
+                <a
+                  href={releaseInfo.verifiedApkUrl}
+                  download={releaseInfo.apkFileName ?? "Nova.Music.apk"}
+                  rel="noopener noreferrer"
+                  onClick={() => onNavigate("download")}
+                  className="liquid-button-primary inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>
+                    Download APK v{releaseInfo.manifest.latestVersion}
+                  </span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigate("download")}
+                  className="liquid-button-primary inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>
+                    {releaseInfo?.manifest
+                      ? `Download APK v${releaseInfo.manifest.latestVersion}`
+                      : "Download APK"}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onNavigate("pro")}

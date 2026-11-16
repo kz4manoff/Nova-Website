@@ -22,8 +22,8 @@ export interface SiteConfig {
   };
   release: {
     /**
-     * Set to a valid direct APK download URL (e.g. "/downloads/nova-music-v1.0.0.apk" or CDN link)
-     * when the public build is ready. Keep `null` to display the "Coming Soon" state.
+     * Optional static override URL; live release URLs are fetched dynamically from /update.json
+     * and verified against official GitHub Releases.
      */
     apkUrl: string | null;
     /** e.g. "1.0.0" — keep null until the release build is published. */

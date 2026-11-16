@@ -75,6 +75,10 @@ export function isValidSha256(hash: string): boolean {
   return SHA256_REGEX.test(hash.trim());
 }
 
+const CACHE_TTL_MS = 60_000;
+let cachedReleaseState: VerifiedReleaseState | null = null;
+let cachedReleaseTimestamp = 0;
+
 /**
  * Fetches /update.json, validates its schema, and cross-verifies any APK URL
  * against published assets in kz4manoff/Nova-Music GitHub Releases.
@@ -82,6 +86,14 @@ export function isValidSha256(hash: string): boolean {
 export async function fetchAndVerifyLatestRelease(
   bypassCache = false
 ): Promise<VerifiedReleaseState> {
+  if (
+    !bypassCache &&
+    cachedReleaseState &&
+    Date.now() - cachedReleaseTimestamp < CACHE_TTL_MS
+  ) {
+    return cachedReleaseState;
+  }
+
   const manifestUrl = bypassCache
     ? `/update.json?t=${Date.now()}`
     : "/update.json";
@@ -221,7 +233,7 @@ export async function fetchAndVerifyLatestRelease(
         })
       : null;
 
-    return {
+    const verified: VerifiedReleaseState = {
       manifest,
       verifiedApkUrl: matchedAsset.browser_download_url,
       verifiedSha256: isValidSha256(manifest.sha256)
@@ -234,6 +246,10 @@ export async function fetchAndVerifyLatestRelease(
       isVerifiedReleaseAvailable: true,
       verificationReason: "Verified against official GitHub Releases.",
     };
+
+    cachedReleaseState = verified;
+    cachedReleaseTimestamp = Date.now();
+    return verified;
   } catch {
     return {
       manifest,

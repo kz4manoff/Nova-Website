@@ -168,12 +168,20 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
                 <Smartphone className="w-4 h-4 text-sky-300 shrink-0" />
                 <span>Android Package (.apk)</span>
                 <span aria-hidden="true">·</span>
-                <span className={isVerifiedReady ? "text-emerald-300" : "text-zinc-300"}>
+                <span
+                  className={
+                    isVerifiedReady
+                      ? "text-emerald-300"
+                      : isChecking
+                      ? "text-zinc-300"
+                      : "text-red-300"
+                  }
+                >
                   {isChecking
                     ? "Verifying release..."
                     : isVerifiedReady
                     ? "Verified GitHub Release Ready"
-                    : "Release APK Pending"}
+                    : "Release APK Unavailable"}
                 </span>
               </div>
 
@@ -197,7 +205,7 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
 
             {/* Action Buttons: Download APK + Separate Check for Latest Version */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-              {isVerifiedReady ? (
+              {isVerifiedReady && manifest ? (
                 <button
                   type="button"
                   onClick={() => void handleStartDownload()}
@@ -207,15 +215,15 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
                   <Download className="w-4 h-4" />
                   <span>
                     {isDownloading
-                      ? "Downloading..."
-                      : `Download APK${
+                      ? `Downloading v${manifest.latestVersion}...`
+                      : `Download APK v${manifest.latestVersion}${
                           releaseInfo?.fileSizeFormatted
                             ? ` (${releaseInfo.fileSizeFormatted})`
                             : ""
                         }`}
                   </span>
                 </button>
-              ) : (
+              ) : isChecking ? (
                 <button
                   type="button"
                   disabled
@@ -223,7 +231,17 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
                   className="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-white/[0.06] border border-white/15 text-sm font-medium text-zinc-400 cursor-not-allowed whitespace-nowrap shrink-0"
                 >
                   <Clock className="w-4 h-4 text-sky-300" />
-                  <span>{isChecking ? "Verifying APK..." : "APK Coming Soon"}</span>
+                  <span>Verifying APK...</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-red-500/10 border border-red-400/25 text-sm font-medium text-red-200 cursor-not-allowed whitespace-nowrap shrink-0"
+                >
+                  <AlertCircle className="w-4 h-4 text-red-300" />
+                  <span>APK Unavailable</span>
                 </button>
               )}
 
@@ -264,8 +282,24 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
                         )}`
                       : downloadProgress.bytesDownloaded > 0
                       ? formatBytes(downloadProgress.bytesDownloaded)
-                      : downloadProgress.phase === "browser_handoff"
-                      ? "Check your browser's Downloads bar for progress."
+                      : downloadProgress.phase === "browser_handoff" &&
+                        releaseInfo?.verifiedApkUrl
+                      ? (
+                        <span>
+                          Downloading{" "}
+                          {releaseInfo.apkFileName ?? "Nova.Music.apk"} in your
+                          browser.{" "}
+                          <a
+                            href={releaseInfo.verifiedApkUrl}
+                            download={releaseInfo.apkFileName ?? "Nova.Music.apk"}
+                            rel="noopener noreferrer"
+                            className="text-sky-300 underline hover:text-sky-200"
+                          >
+                            Click here if it did not start automatically
+                          </a>
+                          .
+                        </span>
+                      )
                       : "Preparing stream..."}
                   </p>
                 </div>
@@ -300,8 +334,8 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* Error Feedback Banner (Manifest Fetch or Download Error) */}
-          {(checkError || downloadError) && (
+          {/* Error Feedback Banner (Manifest Fetch, Missing APK, or Download Error) */}
+          {(checkError || downloadError || (!isChecking && !isVerifiedReady)) && (
             <div
               role="alert"
               className="rounded-2xl bg-red-500/10 border border-red-400/25 p-4 flex items-start gap-3 text-xs text-red-200 leading-relaxed"
@@ -309,9 +343,18 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-300" />
               <div className="space-y-1">
                 <p className="font-medium text-red-100">
-                  {downloadError ? "Download Error" : "Release Check Error"}
+                  {downloadError
+                    ? "Download Error"
+                    : checkError
+                    ? "Release Check Error"
+                    : "No Verified APK Release Available"}
                 </p>
-                <p>{downloadError ?? checkError}</p>
+                <p>
+                  {downloadError ??
+                    checkError ??
+                    releaseInfo?.verificationReason ??
+                    "No valid downloadable APK was found in /update.json or GitHub Releases."}
+                </p>
               </div>
             </div>
           )}
