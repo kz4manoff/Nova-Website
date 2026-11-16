@@ -1,7 +1,9 @@
 {
-  "versionName": "0.0.0-placeholder",
-  "versionCode": 0,
+  "latestVersion": "1.0.1",
+  "versionCode": 2,
   "apkUrl": "REPLACE_WITH_GITHUB_RELEASE_APK_URL",
-  "releaseNotes": "Placeholder update manifest. Replace versionName, versionCode, apkUrl, and releaseNotes after publishing a real APK asset on GitHub Releases.",
-  "mandatory": false
+  "sha256": "REPLACE_WITH_APK_SHA256",
+  "releaseNotes": "Initial baseline manifest. Replace apkUrl and sha256 when publishing a new APK release on GitHub Releases.",
+  "mandatoryUpdate": false,
+  "minimumSupportedVersion": 1
 }
