@@ -8,13 +8,14 @@ import { DownloadPage } from "./pages/DownloadPage";
 import { ProPage } from "./pages/ProPage";
 import { AboutPage } from "./pages/AboutPage";
 import { SupportPage } from "./pages/SupportPage";
+import { NovaControlPage } from "./pages/NovaControlPage";
 import { applyPageSeo } from "./utils/seo";
 import { DownloadStatsProvider } from "./context/DownloadStatsContext";
 import { pathToRoute, routeToPath, type AppRoute } from "./types/navigation";
 
 const seoByRoute: Record<
   AppRoute,
-  { title: string; description: string }
+  { title: string; description: string; noIndex?: boolean }
 > = {
   home: {
     title: "NOVA MUSIC — Your Music, Your Experience",
@@ -45,6 +46,11 @@ const seoByRoute: Record<
     title: "Support & FAQ — NOVA MUSIC Android App",
     description:
       "Find answers on installing the NOVA MUSIC Android APK, automatic in-app updates, device compatibility, and direct support options.",
+  },
+  "nova-control": {
+    title: "NOVA BROADCAST — Private Control Center",
+    description: "Private internal notification management for NOVA MUSIC.",
+    noIndex: true,
   },
 };
 
@@ -77,6 +83,7 @@ export default function App() {
       title: meta.title,
       description: meta.description,
       path: routeToPath[activeRoute],
+      noIndex: Boolean(meta.noIndex),
     });
   }, [activeRoute]);
 
@@ -94,6 +101,8 @@ export default function App() {
         return <AboutPage onNavigate={navigate} />;
       case "support":
         return <SupportPage />;
+      case "nova-control":
+        return <NovaControlPage />;
     }
   };
 

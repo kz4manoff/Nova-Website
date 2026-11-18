@@ -1,8 +1,10 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /nova-control
 
 User-agent: Googlebot
 Allow: /
+Disallow: /nova-control
 
 Sitemap: https://nova-website-1tg.pages.dev/sitemap.xml

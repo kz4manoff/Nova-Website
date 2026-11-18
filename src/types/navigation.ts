@@ -4,7 +4,8 @@ export type AppRoute =
   | "download"
   | "pro"
   | "about"
-  | "support";
+  | "support"
+  | "nova-control";
 
 export const routeToPath: Record<AppRoute, string> = {
   home: "/",
@@ -13,10 +14,11 @@ export const routeToPath: Record<AppRoute, string> = {
   pro: "/pro",
   about: "/about",
   support: "/support",
+  "nova-control": "/nova-control",
 };
 
 export function pathToRoute(pathname: string): AppRoute {
-  const normalized = pathname.replace(/\/+$/, "") || "/";
+  const normalized = (pathname.replace(/\/+$/, "") || "/").toLowerCase();
   switch (normalized) {
     case "/":
       return "home";
@@ -30,6 +32,8 @@ export function pathToRoute(pathname: string): AppRoute {
       return "about";
     case "/support":
       return "support";
+    case "/nova-control":
+      return "nova-control";
     default:
       return "home";
   }

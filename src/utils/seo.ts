@@ -4,9 +4,18 @@ export interface PageSeoMetadata {
   title: string;
   description: string;
   path: string;
+  noIndex?: boolean;
 }
 
-export function applyPageSeo({ title, description, path }: PageSeoMetadata): void {
+const DEFAULT_ROBOTS_CONTENT =
+  "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+
+export function applyPageSeo({
+  title,
+  description,
+  path,
+  noIndex = false,
+}: PageSeoMetadata): void {
   document.title = title;
 
   const setMeta = (
@@ -24,14 +33,31 @@ export function applyPageSeo({ title, description, path }: PageSeoMetadata): voi
     element.setAttribute("content", content);
   };
 
+  setMeta(
+    'meta[name="robots"]',
+    "name",
+    "robots",
+    noIndex ? "noindex, nofollow" : DEFAULT_ROBOTS_CONTENT
+  );
   setMeta('meta[name="description"]', "name", "description", description);
   setMeta('meta[property="og:title"]', "property", "og:title", title);
-  setMeta('meta[property="og:description"]', "property", "og:description", description);
+  setMeta(
+    'meta[property="og:description"]',
+    "property",
+    "og:description",
+    description
+  );
   setMeta('meta[name="twitter:title"]', "name", "twitter:title", title);
-  setMeta('meta[name="twitter:description"]', "name", "twitter:description", description);
+  setMeta(
+    'meta[name="twitter:description"]',
+    "name",
+    "twitter:description",
+    description
+  );
 
   const baseUrl = siteConfig.brand.siteUrl.replace(/\/+$/, "");
-  const normalizedPath = path === "/" ? "/" : `/${path.replace(/^\/+|\/+$/g, "")}`;
+  const normalizedPath =
+    path === "/" ? "/" : `/${path.replace(/^\/+|\/+$/g, "")}`;
   const canonicalUrl = `${baseUrl}${normalizedPath}`;
 
   setMeta('meta[property="og:url"]', "property", "og:url", canonicalUrl);
