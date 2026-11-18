@@ -1,9 +1,9 @@
 {
-  "latestVersion": "1.2.1",
-  "versionCode": 22,
-  "apkUrl": "https://github.com/kz4manoff/Nova-Music/releases/download/v1.2.1/NOVA-MUSIC-v1.2.1.apk",
-  "sha256": "75df1a17e455bcf14c8ac782703fd87197ca2bdf082934f67808060674fb4918",
-  "releaseNotes": "NOVA MUSIC v1.2.1 (Build 22) signed release.",
+  "latestVersion": "1.2.3",
+  "versionCode": 23,
+  "apkUrl": "https://github.com/kz4manoff/Nova-Music/releases/download/v1.2.3/NOVA-MUSIC-v1.2.3.apk",
+  "sha256": "536aad57088627a373fb47b340f4d0476f8b1d5b6291a77587de176ae8d2d610",
+  "releaseNotes": "NOVA MUSIC v1.2.3 (Build 23) signed release.",
   "mandatoryUpdate": false,
   "minimumSupportedVersion": 1
 }
