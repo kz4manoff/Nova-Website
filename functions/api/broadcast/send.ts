@@ -21,6 +21,8 @@ interface SendBroadcastBody {
   idempotencyKey?: string;
 }
 
+const D1_PAGE_SIZE = 200;
+
 function isValidHttpsImageUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -36,6 +38,42 @@ function isValidDeepLink(link: string): boolean {
   if (/^(novamusic|https):\/\//i.test(trimmed)) return true;
   if (/^\/[a-zA-Z0-9\-_/]*$/.test(trimmed)) return true;
   return false;
+}
+
+async function fetchPaginatedEligibleTokens(
+  db: NonNullable<BroadcastEnv["NOVA_DB"]>
+): Promise<string[]> {
+  const tokens: string[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await db
+      .prepare(
+        `SELECT token
+         FROM fcm_devices
+         WHERE (status IS NULL OR status = 'active')
+           AND (notifications_enabled IS NULL OR notifications_enabled = 1)
+         ORDER BY created_at ASC, token ASC
+         LIMIT ? OFFSET ?`
+      )
+      .bind(D1_PAGE_SIZE, offset)
+      .all<{ token: string }>();
+
+    const rows = page.results ?? [];
+    for (const row of rows) {
+      const candidate = typeof row.token === "string" ? row.token.trim() : "";
+      if (candidate.length >= 32 && candidate.length <= 512 && !/\s/.test(candidate)) {
+        tokens.push(candidate);
+      }
+    }
+
+    if (rows.length < D1_PAGE_SIZE) {
+      break;
+    }
+    offset += D1_PAGE_SIZE;
+  }
+
+  return tokens;
 }
 
 export const onRequestPost = async ({
@@ -57,7 +95,10 @@ export const onRequestPost = async ({
     );
   }
   if (!session.valid) {
-    return jsonResponse({ error: "Unauthorized. Admin authentication required." }, 401);
+    return jsonResponse(
+      { error: "Unauthorized. Admin authentication required." },
+      401
+    );
   }
 
   const config = getServerConfigStatus(env);
@@ -167,6 +208,7 @@ export const onRequestPost = async ({
           status: existing.status,
           targetedCount: existing.targeted_count,
           successCount: existing.success_count,
+          fcmAcceptedCount: existing.success_count,
           failureCount: existing.failure_count,
           invalidTokensRemoved: existing.invalid_tokens_removed,
           createdAt: existing.created_at,
@@ -175,7 +217,7 @@ export const onRequestPost = async ({
     }
   }
 
-  // Gather target tokens from D1 (never trust arbitrary client token arrays for "all")
+  // Gather target tokens from D1 (Send to All never depends on admin test tokens)
   let targetTokens: string[] = [];
   if (mode === "test") {
     if (explicitTestToken) {
@@ -192,7 +234,11 @@ export const onRequestPost = async ({
       targetTokens = [explicitTestToken];
     } else {
       const testRows = await env.NOVA_DB.prepare(
-        "SELECT token FROM fcm_devices WHERE status = 'active' AND is_admin_test = 1 ORDER BY last_seen_at DESC LIMIT 5"
+        `SELECT token
+         FROM fcm_devices
+         WHERE status = 'active' AND notifications_enabled = 1 AND is_admin_test = 1
+         ORDER BY last_seen_at DESC
+         LIMIT 5`
       ).all<{ token: string }>();
       targetTokens = (testRows.results ?? []).map((r) => r.token);
     }
@@ -201,22 +247,19 @@ export const onRequestPost = async ({
       return jsonResponse(
         {
           error:
-            "No admin test device is registered yet. Register your Android test FCM token below or pass a test token.",
+            "Optional admin test device is not configured. Add a test token below to send a single-device test, or click Send to All Devices to broadcast to every registered NOVA MUSIC user.",
         },
         400
       );
     }
   } else {
-    const allRows = await env.NOVA_DB.prepare(
-      "SELECT token FROM fcm_devices WHERE status = 'active'"
-    ).all<{ token: string }>();
-    targetTokens = (allRows.results ?? []).map((r) => r.token);
+    targetTokens = await fetchPaginatedEligibleTokens(env.NOVA_DB);
 
     if (targetTokens.length === 0) {
       return jsonResponse(
         {
           error:
-            "No registered Android devices found yet. Users must install the FCM-enabled NOVA MUSIC app and grant notification permission first.",
+            "No notification-enabled Android devices are registered yet. Devices register automatically once users open NOVA MUSIC with notification permission enabled.",
         },
         400
       );
@@ -226,22 +269,34 @@ export const onRequestPost = async ({
   const broadcastId = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
-  let sendResult: {
-    successCount: number;
-    failureCount: number;
-    invalidTokens: string[];
-    errors: string[];
-    outcomes: FcmSendOutcome[];
-  };
+  let successCount = 0;
+  let failureCount = 0;
+  const invalidTokens: string[] = [];
+  const errors: string[] = [];
+  const outcomes: FcmSendOutcome[] = [];
 
   try {
-    sendResult = await sendFcmNotificationToTokens(env, targetTokens, {
-      broadcastId,
-      title,
-      message,
-      imageUrl,
-      deepLink,
-    });
+    // Process targets in paginated batches of 200 to keep memory bounded on large audiences
+    for (let i = 0; i < targetTokens.length; i += D1_PAGE_SIZE) {
+      const chunk = targetTokens.slice(i, i + D1_PAGE_SIZE);
+      const chunkResult = await sendFcmNotificationToTokens(env, chunk, {
+        broadcastId,
+        title,
+        message,
+        imageUrl,
+        deepLink,
+      });
+
+      successCount += chunkResult.successCount;
+      failureCount += chunkResult.failureCount;
+      invalidTokens.push(...chunkResult.invalidTokens);
+      for (const e of chunkResult.errors) {
+        if (errors.length < 5) errors.push(e);
+      }
+      if (outcomes.length < 150) {
+        outcomes.push(...chunkResult.outcomes.slice(0, 150 - outcomes.length));
+      }
+    }
   } catch (err) {
     const errMsg =
       err instanceof Error ? err.message : "Failed to send FCM notification.";
@@ -271,7 +326,7 @@ export const onRequestPost = async ({
 
   // Prune invalid/unregistered FCM tokens from D1 automatically
   let removedCount = 0;
-  for (const invalidToken of sendResult.invalidTokens) {
+  for (const invalidToken of invalidTokens) {
     await env.NOVA_DB.prepare("DELETE FROM fcm_devices WHERE token = ?")
       .bind(invalidToken)
       .run();
@@ -279,13 +334,13 @@ export const onRequestPost = async ({
   }
 
   const status =
-    sendResult.successCount === targetTokens.length
+    successCount === targetTokens.length
       ? "sent"
-      : sendResult.successCount > 0
+      : successCount > 0
       ? "partial"
       : "failed";
   const errorSummary =
-    sendResult.errors.length > 0 ? sendResult.errors.join(" | ").slice(0, 300) : null;
+    errors.length > 0 ? errors.join(" | ").slice(0, 300) : null;
 
   await env.NOVA_DB.prepare(
     `INSERT INTO broadcast_history
@@ -302,8 +357,8 @@ export const onRequestPost = async ({
       mode,
       status,
       targetTokens.length,
-      sendResult.successCount,
-      sendResult.failureCount,
+      successCount,
+      failureCount,
       removedCount,
       errorSummary,
       createdAt
@@ -311,9 +366,9 @@ export const onRequestPost = async ({
     .run();
 
   // Persist per-device broadcast delivery records (masked tokens only)
-  for (const outcome of sendResult.outcomes.slice(0, 100)) {
+  for (const outcome of outcomes.slice(0, 100)) {
     const deliveryStatus = outcome.ok
-      ? "delivered"
+      ? "accepted"
       : outcome.invalidToken
       ? "pruned"
       : "failed";
@@ -343,8 +398,9 @@ export const onRequestPost = async ({
       mode,
       status,
       targetedCount: targetTokens.length,
-      successCount: sendResult.successCount,
-      failureCount: sendResult.failureCount,
+      successCount,
+      fcmAcceptedCount: successCount,
+      failureCount,
       invalidTokensRemoved: removedCount,
       errorSummary,
       createdAt,

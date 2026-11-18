@@ -26,7 +26,10 @@ export const onRequestGet = async ({
     );
   }
   if (!session.valid) {
-    return jsonResponse({ error: "Unauthorized. Admin authentication required." }, 401);
+    return jsonResponse(
+      { error: "Unauthorized. Admin authentication required." },
+      401
+    );
   }
 
   const config = await checkServerConfigStatus(env);
@@ -37,6 +40,7 @@ export const onRequestGet = async ({
       stats: {
         totalDevices: 0,
         activeDevices: 0,
+        disabledDevices: 0,
         adminTestDevices: 0,
         totalBroadcasts: 0,
         totalDelivered: 0,
@@ -53,12 +57,14 @@ export const onRequestGet = async ({
   const deviceStats = await env.NOVA_DB.prepare(
     `SELECT
        COUNT(*) AS totalDevices,
-       COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS activeDevices,
-       COALESCE(SUM(CASE WHEN status = 'active' AND is_admin_test = 1 THEN 1 ELSE 0 END), 0) AS adminTestDevices
+       COALESCE(SUM(CASE WHEN (status IS NULL OR status = 'active') AND (notifications_enabled IS NULL OR notifications_enabled = 1) THEN 1 ELSE 0 END), 0) AS activeDevices,
+       COALESCE(SUM(CASE WHEN (status IS NULL OR status = 'active') AND notifications_enabled = 0 THEN 1 ELSE 0 END), 0) AS disabledDevices,
+       COALESCE(SUM(CASE WHEN (status IS NULL OR status = 'active') AND (notifications_enabled IS NULL OR notifications_enabled = 1) AND is_admin_test = 1 THEN 1 ELSE 0 END), 0) AS adminTestDevices
      FROM fcm_devices`
   ).first<{
     totalDevices: number;
     activeDevices: number;
+    disabledDevices: number;
     adminTestDevices: number;
   }>();
 
@@ -77,16 +83,23 @@ export const onRequestGet = async ({
   }>();
 
   const recentDeviceRows = await env.NOVA_DB.prepare(
-    `SELECT token, device_id, app_version, android_sdk, is_admin_test, status, last_seen_at
+    `SELECT token, device_id, app_version, app_version_code, android_sdk,
+            device_model, manufacturer, notifications_enabled, locale,
+            is_admin_test, status, last_seen_at
      FROM fcm_devices
-     WHERE status = 'active'
-     ORDER BY is_admin_test DESC, last_seen_at DESC
-     LIMIT 20`
+     WHERE (status IS NULL OR status = 'active')
+     ORDER BY COALESCE(notifications_enabled, 1) DESC, is_admin_test DESC, last_seen_at DESC
+     LIMIT 30`
   ).all<{
     token: string;
     device_id: string | null;
     app_version: string | null;
+    app_version_code: number | null;
     android_sdk: number | null;
+    device_model: string | null;
+    manufacturer: string | null;
+    notifications_enabled: number;
+    locale: string | null;
     is_admin_test: number;
     status: string;
     last_seen_at: string;
@@ -120,6 +133,7 @@ export const onRequestGet = async ({
     stats: {
       totalDevices: deviceStats?.totalDevices ?? 0,
       activeDevices: deviceStats?.activeDevices ?? 0,
+      disabledDevices: deviceStats?.disabledDevices ?? 0,
       adminTestDevices: deviceStats?.adminTestDevices ?? 0,
       totalBroadcasts: historyStats?.totalBroadcasts ?? 0,
       totalDelivered: historyStats?.totalDelivered ?? 0,
@@ -130,7 +144,12 @@ export const onRequestGet = async ({
       maskedToken: maskFcmToken(row.token),
       deviceId: row.device_id ? `${row.device_id.slice(0, 8)}...` : null,
       appVersion: row.app_version ?? "Unknown",
+      appVersionCode: row.app_version_code,
       androidSdk: row.android_sdk,
+      deviceModel: row.device_model,
+      manufacturer: row.manufacturer,
+      notificationsEnabled: row.notifications_enabled !== 0,
+      locale: row.locale,
       isAdminTest: row.is_admin_test === 1,
       status: row.status,
       lastSeenAt: row.last_seen_at,
@@ -145,6 +164,7 @@ export const onRequestGet = async ({
       status: row.status,
       targetedCount: row.targeted_count,
       successCount: row.success_count,
+      fcmAcceptedCount: row.success_count,
       failureCount: row.failure_count,
       invalidTokensRemoved: row.invalid_tokens_removed,
       errorSummary: row.error_summary,

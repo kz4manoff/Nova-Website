@@ -18,6 +18,7 @@ export interface BroadcastSessionState {
 export interface BroadcastStats {
   totalDevices: number;
   activeDevices: number;
+  disabledDevices?: number;
   adminTestDevices: number;
   totalBroadcasts: number;
   totalDelivered: number;
@@ -29,7 +30,12 @@ export interface MaskedDeviceSummary {
   maskedToken: string;
   deviceId: string | null;
   appVersion: string;
+  appVersionCode?: number | null;
   androidSdk: number | null;
+  deviceModel?: string | null;
+  manufacturer?: string | null;
+  notificationsEnabled?: boolean;
+  locale?: string | null;
   isAdminTest: boolean;
   status: string;
   lastSeenAt: string;
@@ -45,6 +51,7 @@ export interface BroadcastHistoryItem {
   status: "sent" | "partial" | "failed";
   targetedCount: number;
   successCount: number;
+  fcmAcceptedCount?: number;
   failureCount: number;
   invalidTokensRemoved: number;
   errorSummary: string | null;

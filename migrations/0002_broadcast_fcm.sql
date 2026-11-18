@@ -3,8 +3,14 @@
 CREATE TABLE IF NOT EXISTS fcm_devices (
   token TEXT PRIMARY KEY,
   device_id TEXT,
+  package_name TEXT,
   app_version TEXT,
+  app_version_code INTEGER,
   android_sdk INTEGER,
+  device_model TEXT,
+  manufacturer TEXT,
+  notifications_enabled INTEGER NOT NULL DEFAULT 1,
+  locale TEXT,
   is_admin_test INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'active',
   created_at TEXT NOT NULL,
@@ -12,7 +18,7 @@ CREATE TABLE IF NOT EXISTS fcm_devices (
 );
 
 CREATE INDEX IF NOT EXISTS idx_fcm_devices_status
-  ON fcm_devices (status, is_admin_test);
+  ON fcm_devices (status, notifications_enabled, is_admin_test);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_fcm_devices_device_id
   ON fcm_devices (device_id)

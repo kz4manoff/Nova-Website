@@ -53,9 +53,10 @@ export const onRequestPost = async ({
   await ensureBroadcastSchema(env.NOVA_DB);
 
   await env.NOVA_DB.prepare(
-    `INSERT INTO fcm_devices (token, device_id, app_version, android_sdk, is_admin_test, status, created_at, last_seen_at)
-     VALUES (?, 'admin-test-device', ?, NULL, 1, 'active', ?, ?)
+    `INSERT INTO fcm_devices (token, device_id, app_version, android_sdk, notifications_enabled, is_admin_test, status, created_at, last_seen_at)
+     VALUES (?, 'admin-test-device', ?, NULL, 1, 1, 'active', ?, ?)
      ON CONFLICT(token) DO UPDATE SET
+       notifications_enabled = 1,
        is_admin_test = 1,
        status = 'active',
        last_seen_at = excluded.last_seen_at`

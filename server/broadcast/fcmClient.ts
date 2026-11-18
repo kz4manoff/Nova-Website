@@ -511,10 +511,10 @@ export async function sendFcmNotificationToTokens(
     const results = await Promise.all(
       batch.map(async (token): Promise<FcmSendOutcome> => {
         const androidNotification: Record<string, string> = {
-          channel_id: "nova_broadcasts",
+          channel_id: "nova_broadcast",
           tag: payload.broadcastId,
           sound: "default",
-          click_action: "OPEN_NOVA_MUSIC",
+          click_action: "com.novamusic.player.ACTION_OPEN_BROADCAST",
         };
         if (payload.imageUrl) {
           androidNotification.image = payload.imageUrl;
@@ -529,6 +529,7 @@ export async function sendFcmNotificationToTokens(
               ...(payload.imageUrl ? { image: payload.imageUrl } : {}),
             },
             data: {
+              type: "nova_broadcast",
               broadcastId: payload.broadcastId,
               title: payload.title,
               body: payload.message,

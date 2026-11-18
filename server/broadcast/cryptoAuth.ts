@@ -26,6 +26,7 @@ export interface BroadcastEnv {
   NOVA_BROADCAST_ADMIN_CODE?: string;
   NOVA_BROADCAST_SESSION_SECRET?: string;
   NOVA_ANDROID_REG_KEY?: string;
+  NOVA_BROADCAST_CLIENT_KEY?: string;
   FIREBASE_SERVICE_ACCOUNT_JSON?: string;
   FIREBASE_PROJECT_ID?: string;
   FIREBASE_CLIENT_EMAIL?: string;
@@ -108,8 +109,14 @@ export async function ensureBroadcastSchema(db: D1DatabaseLike): Promise<void> {
       `CREATE TABLE IF NOT EXISTS fcm_devices (
         token TEXT PRIMARY KEY,
         device_id TEXT,
+        package_name TEXT,
         app_version TEXT,
+        app_version_code INTEGER,
         android_sdk INTEGER,
+        device_model TEXT,
+        manufacturer TEXT,
+        notifications_enabled INTEGER NOT NULL DEFAULT 1,
+        locale TEXT,
         is_admin_test INTEGER NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'active',
         created_at TEXT NOT NULL,
@@ -118,11 +125,43 @@ export async function ensureBroadcastSchema(db: D1DatabaseLike): Promise<void> {
     )
     .run();
 
+  const fcmDeviceMigrations = [
+    "ALTER TABLE fcm_devices ADD COLUMN package_name TEXT",
+    "ALTER TABLE fcm_devices ADD COLUMN app_version_code INTEGER",
+    "ALTER TABLE fcm_devices ADD COLUMN device_model TEXT",
+    "ALTER TABLE fcm_devices ADD COLUMN manufacturer TEXT",
+    "ALTER TABLE fcm_devices ADD COLUMN notifications_enabled INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE fcm_devices ADD COLUMN locale TEXT",
+  ];
+  for (const ddl of fcmDeviceMigrations) {
+    try {
+      await db.prepare(ddl).run();
+    } catch {
+      // Column already exists on initialized D1 instances
+    }
+  }
+
   await db
     .prepare(
       "CREATE INDEX IF NOT EXISTS idx_fcm_devices_status ON fcm_devices (status, is_admin_test)"
     )
     .run();
+
+  await db
+    .prepare(
+      "CREATE INDEX IF NOT EXISTS idx_fcm_devices_eligible ON fcm_devices (status, notifications_enabled, is_admin_test)"
+    )
+    .run();
+
+  try {
+    await db
+      .prepare(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_fcm_devices_device_id ON fcm_devices (device_id) WHERE device_id IS NOT NULL"
+      )
+      .run();
+  } catch {
+    // Ignore if index already exists or cannot be created retroactively
+  }
 
   await db
     .prepare(

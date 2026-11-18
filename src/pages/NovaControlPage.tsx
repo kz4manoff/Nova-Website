@@ -286,16 +286,21 @@ export const NovaControlPage: React.FC = () => {
       });
 
       const b = result.broadcast;
+      const acceptedCount = b.fcmAcceptedCount ?? b.successCount;
       setSendFeedback({
         type: b.status === "failed" ? "error" : "success",
         text:
           b.status === "failed"
-            ? `Delivery failed for all ${b.targetedCount} target(s). ${
-                b.errorSummary ?? ""
-              }`
+            ? `FCM rejected all ${b.targetedCount} target(s) (${b.failureCount} failed${
+                b.invalidTokensRemoved > 0
+                  ? `, ${b.invalidTokensRemoved} invalid token(s) removed`
+                  : ""
+              }). ${b.errorSummary ?? ""}`
             : `Notification ${
-                mode === "test" ? "sent to test device" : "broadcasted"
-              }: ${b.successCount} delivered of ${b.targetedCount} targeted${
+                mode === "test" ? "accepted for test device" : "dispatched to all notification-enabled users"
+              }: ${acceptedCount} accepted by FCM out of ${b.targetedCount} targeted${
+                b.failureCount > 0 ? `, ${b.failureCount} failed` : ""
+              }${
                 b.invalidTokensRemoved > 0
                   ? ` (${b.invalidTokensRemoved} invalid token(s) cleaned)`
                   : ""
@@ -605,50 +610,54 @@ export const NovaControlPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="liquid-glass-subtle rounded-2xl p-6 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Registered Devices</span>
+            <span>Total Registered Devices</span>
             <Smartphone className="w-4 h-4 text-sky-300" />
           </div>
           <p className="font-display text-3xl font-semibold text-white tabular-nums">
-            {stats ? stats.activeDevices.toLocaleString() : "—"}
+            {stats ? stats.totalDevices.toLocaleString() : "—"}
           </p>
           <p className="text-xs text-zinc-500 tabular-nums">
             {stats
-              ? `${stats.adminTestDevices} admin test device(s)`
+              ? `${stats.activeDevices.toLocaleString()} notification-enabled${
+                  (stats.disabledDevices ?? 0) > 0
+                    ? ` · ${stats.disabledDevices} paused`
+                    : ""
+                }`
               : "Loading registry..."}
           </p>
         </div>
 
         <div className="liquid-glass-subtle rounded-2xl p-6 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Notifications Sent</span>
-            <Send className="w-4 h-4 text-emerald-300" />
+            <span>Push-Enabled Reach</span>
+            <Bell className="w-4 h-4 text-emerald-300" />
+          </div>
+          <p className="font-display text-3xl font-semibold text-white tabular-nums">
+            {stats ? stats.activeDevices.toLocaleString() : "—"}
+          </p>
+          <p className="text-xs text-zinc-500 tabular-nums">
+            {stats
+              ? `${
+                  stats.adminTestDevices > 0
+                    ? `${stats.adminTestDevices} admin test · `
+                    : ""
+                }Targeted by Send to All`
+              : "Loading reach..."}
+          </p>
+        </div>
+
+        <div className="liquid-glass-subtle rounded-2xl p-6 space-y-2">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
+            <span>Accepted by FCM</span>
+            <Send className="w-4 h-4 text-sky-300" />
           </div>
           <p className="font-display text-3xl font-semibold text-white tabular-nums">
             {stats ? stats.totalDelivered.toLocaleString() : "—"}
           </p>
           <p className="text-xs text-zinc-500 tabular-nums">
             {stats
-              ? `${stats.totalFailed} failed delivery attempt(s)`
+              ? `${stats.totalFailed.toLocaleString()} failed · ${stats.totalBroadcasts} broadcast(s)`
               : "Loading metrics..."}
-          </p>
-        </div>
-
-        <div className="liquid-glass-subtle rounded-2xl p-6 space-y-2">
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Recent Broadcasts</span>
-            <Bell className="w-4 h-4 text-sky-300" />
-          </div>
-          <p className="font-display text-3xl font-semibold text-white tabular-nums">
-            {stats ? stats.totalBroadcasts.toLocaleString() : "—"}
-          </p>
-          <p className="text-xs text-zinc-500">
-            {activeConfig?.fcmConfigured
-              ? activeConfig.fcmSource === "firebase_service_account_json"
-                ? "FCM HTTP v1 ready (Service Account JSON)"
-                : "FCM HTTP v1 ready (Fallback env vars)"
-              : activeConfig?.fcmError && activeConfig.fcmSource !== "none"
-              ? "Invalid Firebase Service Account config"
-              : "Waiting for FIREBASE_SERVICE_ACCOUNT_JSON"}
           </p>
         </div>
 
@@ -661,7 +670,11 @@ export const NovaControlPage: React.FC = () => {
             {stats ? stats.invalidTokensRemoved.toLocaleString() : "—"}
           </p>
           <p className="text-xs text-zinc-500">
-            Invalid / uninstalled tokens removed
+            {activeConfig?.fcmConfigured
+              ? activeConfig.fcmSource === "firebase_service_account_json"
+                ? "FCM HTTP v1 active (JSON)"
+                : "FCM HTTP v1 active (Fallback)"
+              : "Waiting for Firebase config"}
           </p>
         </div>
       </div>
@@ -700,7 +713,7 @@ export const NovaControlPage: React.FC = () => {
                 maxLength={100}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="NOVA MUSIC v1.1.5 is now available"
+                placeholder="NOVA MUSIC v1.2.4 is now available"
                 className="w-full px-4 py-3 rounded-xl bg-black/45 border border-white/15 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-400/70"
               />
             </div>
@@ -807,13 +820,33 @@ export const NovaControlPage: React.FC = () => {
             </div>
           )}
 
+          {/* Pre-send Registered Audience Summary */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.09] px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-zinc-200">
+              <Smartphone className="w-4 h-4 text-sky-300 shrink-0" />
+              <span>
+                Ready to reach{" "}
+                <span className="font-semibold text-white tabular-nums">
+                  {(stats?.activeDevices ?? 0).toLocaleString()}
+                </span>{" "}
+                eligible registered device(s)
+                {stats && stats.totalDevices !== stats.activeDevices
+                  ? ` (${stats.totalDevices.toLocaleString()} total in NOVA_DB)`
+                  : ""}
+              </span>
+            </div>
+            <span className="text-[11px] text-emerald-300/90 font-medium">
+              Admin test token not required
+            </span>
+          </div>
+
           {/* Two-step confirmation alert for All Devices */}
           {confirmBroadcastAll && (
             <div className="rounded-2xl bg-sky-400/10 border border-sky-300/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
               <p className="text-sky-100 leading-relaxed">
                 Confirm sending this notification to{" "}
                 <span className="font-semibold text-white">
-                  all {stats?.activeDevices ?? 0} registered Android device(s)
+                  all {(stats?.activeDevices ?? 0).toLocaleString()} notification-enabled NOVA MUSIC device(s)
                 </span>
                 ?
               </p>
@@ -837,24 +870,7 @@ export const NovaControlPage: React.FC = () => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-            <button
-              type="button"
-              disabled={isSending !== null}
-              onClick={() => {
-                setConfirmBroadcastAll(false);
-                void handleSend("test");
-              }}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-sm font-medium text-white whitespace-nowrap shrink-0 transition-colors disabled:opacity-60"
-            >
-              <Smartphone className="w-4 h-4 text-sky-300" />
-              <span>
-                {isSending === "test"
-                  ? "Sending Test..."
-                  : "Send Test Notification"}
-              </span>
-            </button>
-
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
             <button
               type="button"
               disabled={isSending !== null}
@@ -867,21 +883,51 @@ export const NovaControlPage: React.FC = () => {
                   ? "Broadcasting..."
                   : confirmBroadcastAll
                   ? "Confirm Send to All Devices"
-                  : "Send to All Devices"}
+                  : `Send to All Devices (${(stats?.activeDevices ?? 0).toLocaleString()})`}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              disabled={
+                isSending !== null ||
+                ((stats?.adminTestDevices ?? 0) === 0 && !testTokenInput.trim())
+              }
+              title={
+                (stats?.adminTestDevices ?? 0) === 0 && !testTokenInput.trim()
+                  ? "Optional: paste or save an Admin Test token below to enable single-device test sends."
+                  : "Send a test push only to your optional admin test device."
+              }
+              onClick={() => {
+                setConfirmBroadcastAll(false);
+                void handleSend("test");
+              }}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-sm font-medium text-white whitespace-nowrap shrink-0 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+            >
+              <Smartphone className="w-4 h-4 text-sky-300" />
+              <span>
+                {isSending === "test"
+                  ? "Sending Test..."
+                  : "Send Test (Optional)"}
               </span>
             </button>
           </div>
 
-          {/* Admin Test Device Token Registry */}
+          <p className="text-[11px] text-zinc-500 leading-relaxed">
+            <span className="text-zinc-300">Send to All Devices</span> targets every eligible FCM token in{" "}
+            <code className="font-mono text-zinc-300">NOVA_DB</code> automatically — no admin test device is required.
+          </p>
+
+          {/* Optional Admin Test Device Token Registry */}
           <div className="pt-6 border-t border-white/[0.08] space-y-3">
             <div className="space-y-1">
               <h3 className="text-xs font-semibold text-white">
-                Admin Test Device Token
+                Optional Admin Test Device Token
               </h3>
               <p className="text-xs text-zinc-400">
-                Save your personal Android device&apos;s FCM token to D1 so{" "}
-                <span className="text-zinc-200">Send Test Notification</span>{" "}
-                targets your phone directly.
+                Optional: save or paste a single Android FCM token if you want to preview on one test phone using{" "}
+                <span className="text-zinc-200">Send Test (Optional)</span>{" "}
+                before clicking <span className="text-zinc-200">Send to All Devices</span>.
               </p>
             </div>
 
@@ -929,7 +975,7 @@ export const NovaControlPage: React.FC = () => {
                 Android Shade Preview
               </h2>
               <p className="text-xs text-zinc-400">
-                Channel: <code className="font-mono text-zinc-300">nova_broadcasts</code>
+                Channel: <code className="font-mono text-zinc-300">nova_broadcast</code>
               </p>
             </div>
             <button
@@ -971,7 +1017,7 @@ export const NovaControlPage: React.FC = () => {
 
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-white break-words">
-                  {title.trim() || "NOVA MUSIC v1.1.5 is now available"}
+                  {title.trim() || "NOVA MUSIC v1.2.4 is now available"}
                 </p>
                 <p
                   className={`text-xs text-zinc-300 leading-relaxed break-words ${
@@ -1019,36 +1065,53 @@ export const NovaControlPage: React.FC = () => {
               Recent Registered Devices (Masked)
             </h3>
             {overview && overview.devices.length > 0 ? (
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {overview.devices.map((dev) => (
-                  <div
-                    key={dev.maskedToken}
-                    className="rounded-xl bg-white/[0.03] border border-white/[0.07] px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-mono text-zinc-200 truncate">
-                        {dev.maskedToken}
-                      </p>
-                      <p className="text-[11px] text-zinc-500">
-                        v{dev.appVersion}
-                        {dev.androidSdk ? ` · API ${dev.androidSdk}` : ""}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-[11px] font-medium shrink-0 ${
-                        dev.isAdminTest ? "text-sky-300" : "text-zinc-400"
-                      }`}
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {overview.devices.map((dev) => {
+                  const hardwareLabel = [dev.manufacturer, dev.deviceModel]
+                    .filter(Boolean)
+                    .join(" ");
+                  const pushEnabled = dev.notificationsEnabled !== false;
+                  return (
+                    <div
+                      key={dev.maskedToken}
+                      className="rounded-xl bg-white/[0.03] border border-white/[0.07] px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs"
                     >
-                      {dev.isAdminTest ? "Admin Test" : "Active"}
-                    </span>
-                  </div>
-                ))}
+                      <div className="min-w-0">
+                        <p className="font-mono text-zinc-200 truncate">
+                          {hardwareLabel ? `${hardwareLabel} · ` : ""}
+                          {dev.maskedToken}
+                        </p>
+                        <p className="text-[11px] text-zinc-500">
+                          v{dev.appVersion}
+                          {dev.appVersionCode ? ` (${dev.appVersionCode})` : ""}
+                          {dev.androidSdk ? ` · API ${dev.androidSdk}` : ""}
+                          {dev.deviceId ? ` · ${dev.deviceId}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-[11px] font-medium shrink-0 ${
+                          !pushEnabled
+                            ? "text-amber-300"
+                            : dev.isAdminTest
+                            ? "text-sky-300"
+                            : "text-emerald-300"
+                        }`}
+                      >
+                        {!pushEnabled
+                          ? "Notifications Off"
+                          : dev.isAdminTest
+                          ? "Admin Test"
+                          : "Push Enabled"}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-zinc-500 leading-relaxed">
-                No Android FCM device tokens registered in D1 yet. Tokens appear
-                here automatically when users open the FCM-integrated NOVA MUSIC
-                app or when you save an Admin Test token.
+                No Android FCM device tokens registered in D1 yet. Devices register
+                automatically when users open NOVA MUSIC with notification
+                permission granted.
               </p>
             )}
           </div>
@@ -1092,9 +1155,9 @@ export const NovaControlPage: React.FC = () => {
                       }`}
                     >
                       {item.status === "sent"
-                        ? "Delivered"
+                        ? "Accepted by FCM"
                         : item.status === "partial"
-                        ? "Partial Delivery"
+                        ? "Partial Acceptance"
                         : "Failed"}
                     </span>
                     <span aria-hidden="true" className="text-zinc-600">
@@ -1124,7 +1187,7 @@ export const NovaControlPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 pt-3 lg:pt-0 lg:pl-6 border-t lg:border-t-0 lg:border-l border-white/[0.08] shrink-0 text-xs">
+                <div className="grid grid-cols-4 gap-4 pt-3 lg:pt-0 lg:pl-6 border-t lg:border-t-0 lg:border-l border-white/[0.08] shrink-0 text-xs">
                   <div>
                     <span className="text-zinc-500 block">Targeted</span>
                     <span className="font-mono font-semibold text-white tabular-nums">
@@ -1132,9 +1195,15 @@ export const NovaControlPage: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block">Delivered</span>
+                    <span className="text-zinc-500 block">Accepted</span>
                     <span className="font-mono font-semibold text-emerald-300 tabular-nums">
-                      {item.successCount}
+                      {item.fcmAcceptedCount ?? item.successCount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Failed</span>
+                    <span className="font-mono font-semibold text-red-300 tabular-nums">
+                      {item.failureCount}
                     </span>
                   </div>
                   <div>
