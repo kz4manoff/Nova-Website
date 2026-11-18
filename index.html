@@ -3,39 +3,63 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="google-site-verification"
+      content="C52LGr7LK7D-tQIZb4S1XbwCdXGK7LWbd00tDTGA9gs"
+    />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
     <meta name="theme-color" content="#050507" />
+
+    <link rel="canonical" href="https://nova-website-1tg.pages.dev/" />
     <link rel="icon" type="image/png" href="/assets/aistudio/icon_771c1cd1.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/assets/aistudio/icon_771c1cd1.png" />
 
-    <title>NOVA MUSIC — Premium Android Music Player</title>
+    <title>NOVA MUSIC — Your Music, Your Experience</title>
     <meta
       name="description"
-      content="Experience music in a completely new way with NOVA MUSIC. A minimalist Android music player featuring a smooth Liquid Glass interface, powerful audio controls, and NOVA PRO."
+      content="Discover NOVA MUSIC, a modern music player designed for a premium listening experience. Explore music, enjoy powerful audio features and download the latest version."
     />
     <meta
       name="keywords"
-      content="NOVA MUSIC, NOVA MUSIC Android, Android Music Player, NOVA MUSIC PRO, Liquid Glass Music Player, Local Audio Player Android"
+      content="NOVA MUSIC, Nova Music Player, Android Music Player, Music App, Music Download"
     />
     <meta name="author" content="kz4man, Mohamed" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NOVA MUSIC" />
-    <meta property="og:title" content="NOVA MUSIC — Your Music. Your Universe." />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://nova-website-1tg.pages.dev/" />
+    <meta property="og:title" content="NOVA MUSIC — Your Music, Your Experience" />
     <meta
       property="og:description"
-      content="Experience music in a completely new way. Minimalist Android music player with a Liquid Glass interface, smart library, and precision audio controls."
+      content="Discover NOVA MUSIC, a modern music player designed for a premium listening experience. Explore music, enjoy powerful audio features and download the latest version."
     />
-    <meta property="og:image" content="/assets/aistudio/icon_771c1cd1.png" />
+    <meta
+      property="og:image"
+      content="https://nova-website-1tg.pages.dev/assets/aistudio/icon_771c1cd1.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="736" />
+    <meta property="og:image:height" content="736" />
+    <meta property="og:image:alt" content="NOVA MUSIC official app logo" />
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="NOVA MUSIC — Your Music. Your Universe." />
+    <meta name="twitter:title" content="NOVA MUSIC — Your Music, Your Experience" />
     <meta
       name="twitter:description"
-      content="Minimalist Android music player with a smooth Liquid Glass interface, local lossless playback, and NOVA PRO."
+      content="Discover NOVA MUSIC, a modern music player designed for a premium listening experience. Explore music, enjoy powerful audio features and download the latest version."
     />
-    <meta name="twitter:image" content="/assets/aistudio/icon_771c1cd1.png" />
+    <meta
+      name="twitter:image"
+      content="https://nova-website-1tg.pages.dev/assets/aistudio/icon_771c1cd1.png"
+    />
+    <meta name="twitter:image:alt" content="NOVA MUSIC official app logo" />
 
     <!-- Typography: Outfit (Display), DM Sans (Body), JetBrains Mono (Specs/Checksums) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,29 +69,86 @@
       rel="stylesheet"
     />
 
-    <!-- Structured Data -->
+    <!-- Structured Data (Schema.org JSON-LD) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "NOVA MUSIC",
-        "operatingSystem": "Android",
-        "applicationCategory": "MultimediaApplication",
-        "description": "A minimalist, futuristic Android music player inspired by Liquid Glass design, offering local music playback, powerful audio controls, and customizable themes.",
-        "author": {
-          "@type": "Person",
-          "name": "kz4man, Mohamed"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "MAD"
-        }
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://nova-website-1tg.pages.dev/#organization",
+            "name": "NOVA MUSIC",
+            "url": "https://nova-website-1tg.pages.dev/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://nova-website-1tg.pages.dev/assets/aistudio/icon_771c1cd1.png",
+              "width": 736,
+              "height": 736
+            },
+            "founder": {
+              "@type": "Person",
+              "name": "kz4man, Mohamed"
+            },
+            "sameAs": [
+              "https://github.com/kz4manoff/Nova-Music",
+              "https://github.com/kz4manoff/Nova-Website"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://nova-website-1tg.pages.dev/#website",
+            "url": "https://nova-website-1tg.pages.dev/",
+            "name": "NOVA MUSIC",
+            "description": "Discover NOVA MUSIC, a modern music player designed for a premium listening experience. Explore music, enjoy powerful audio features and download the latest version.",
+            "inLanguage": "en",
+            "publisher": {
+              "@id": "https://nova-website-1tg.pages.dev/#organization"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://nova-website-1tg.pages.dev/#software",
+            "name": "NOVA MUSIC",
+            "operatingSystem": "Android 8.0+",
+            "applicationCategory": "MultimediaApplication",
+            "softwareVersion": "1.0.2",
+            "url": "https://nova-website-1tg.pages.dev/download",
+            "downloadUrl": "https://github.com/kz4manoff/Nova-Music/releases/download/NovaMusic/Nova.Music.apk",
+            "image": "https://nova-website-1tg.pages.dev/assets/aistudio/icon_771c1cd1.png",
+            "description": "Discover NOVA MUSIC, a modern music player designed for a premium listening experience. Explore music, enjoy powerful audio features and download the latest version.",
+            "author": {
+              "@type": "Person",
+              "name": "kz4man, Mohamed"
+            }
+          }
+        ]
       }
     </script>
   </head>
   <body class="bg-[#050507] text-[#F4F6FB] antialiased selection:bg-sky-400/25 selection:text-white">
     <div id="root"></div>
+    <noscript>
+      <main style="max-width: 720px; margin: 48px auto; padding: 0 24px; font-family: sans-serif; color: #f4f6fb;">
+        <h1>NOVA MUSIC — Your Music, Your Experience</h1>
+        <p>
+          Discover NOVA MUSIC, a modern Android music player featuring a smooth Liquid Glass interface,
+          local lossless audio playback, smart library organization, and precision sound controls.
+        </p>
+        <p>
+          <a href="/download" style="color: #7dd3fc;">Download NOVA MUSIC APK for Android</a> |
+          <a href="/features" style="color: #7dd3fc;">Explore Features</a> |
+          <a href="/pro" style="color: #7dd3fc;">NOVA PRO</a> |
+          <a href="/about" style="color: #7dd3fc;">About</a> |
+          <a href="/support" style="color: #7dd3fc;">Support &amp; FAQ</a>
+        </p>
+        <p>
+          Direct Android APK release:
+          <a href="https://github.com/kz4manoff/Nova-Music/releases/download/NovaMusic/Nova.Music.apk" style="color: #7dd3fc;">
+            Download NOVA MUSIC v1.0.2 (.apk)
+          </a>
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

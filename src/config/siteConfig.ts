@@ -86,7 +86,7 @@ export const siteConfig: SiteConfig = {
     heroDescription: "Experience music in a completely new way.",
     developer: "kz4man, Mohamed",
     copyright: "© 2026 kz4man, Mohamed. All Rights Reserved.",
-    siteUrl: "https://novamusic.app",
+    siteUrl: "https://nova-website-1tg.pages.dev",
   },
   release: {
     apkUrl: null,

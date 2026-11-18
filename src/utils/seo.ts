@@ -1,3 +1,5 @@
+import { siteConfig } from "../config/siteConfig";
+
 export interface PageSeoMetadata {
   title: string;
   description: string;
@@ -7,7 +9,12 @@ export interface PageSeoMetadata {
 export function applyPageSeo({ title, description, path }: PageSeoMetadata): void {
   document.title = title;
 
-  const setMeta = (selector: string, attribute: "name" | "property", key: string, content: string) => {
+  const setMeta = (
+    selector: string,
+    attribute: "name" | "property",
+    key: string,
+    content: string
+  ) => {
     let element = document.querySelector<HTMLMetaElement>(selector);
     if (!element) {
       element = document.createElement("meta");
@@ -23,7 +30,10 @@ export function applyPageSeo({ title, description, path }: PageSeoMetadata): voi
   setMeta('meta[name="twitter:title"]', "name", "twitter:title", title);
   setMeta('meta[name="twitter:description"]', "name", "twitter:description", description);
 
-  const canonicalUrl = `${window.location.origin}${path}`;
+  const baseUrl = siteConfig.brand.siteUrl.replace(/\/+$/, "");
+  const normalizedPath = path === "/" ? "/" : `/${path.replace(/^\/+|\/+$/g, "")}`;
+  const canonicalUrl = `${baseUrl}${normalizedPath}`;
+
   setMeta('meta[property="og:url"]', "property", "og:url", canonicalUrl);
 
   let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');

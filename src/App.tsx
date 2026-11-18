@@ -16,34 +16,34 @@ const seoByRoute: Record<
   { title: string; description: string }
 > = {
   home: {
-    title: "NOVA MUSIC — Your Music. Your Universe.",
+    title: "NOVA MUSIC — Your Music, Your Experience",
     description:
-      "Experience music in a completely new way with NOVA MUSIC. A minimalist Android music player featuring a smooth Liquid Glass interface and local lossless playback.",
+      "Discover NOVA MUSIC, a modern music player designed for a premium listening experience. Explore music, enjoy powerful audio features and download the latest version.",
   },
   features: {
     title: "Features — NOVA MUSIC Android Music Player",
     description:
-      "Explore NOVA MUSIC's Liquid Glass design system, smart local music library, multi-band audio controls, headphone detection, and playback gestures.",
+      "Explore NOVA MUSIC features: smooth Liquid Glass UI, smart local library organization, multi-band audio controls, headphone detection, and playback gestures.",
   },
   download: {
     title: "Download NOVA MUSIC APK for Android",
     description:
-      "Get the official NOVA MUSIC Android APK release, version details, SHA-256 checksum verification, changelog, and installation guide.",
+      "Download the official NOVA MUSIC APK for Android directly from GitHub Releases. View latest version details, SHA-256 checksum verification, and install steps.",
   },
   pro: {
-    title: "NOVA MUSIC PRO — Unlock the Full Experience",
+    title: "NOVA MUSIC PRO — Lifetime Audio Experience",
     description:
-      "Upgrade to NOVA PRO for 49 DH Lifetime Access: premium dark themes, exclusive Liquid Glass effects, acoustic visualizer, and on-device listening statistics.",
+      "Explore NOVA MUSIC PRO features including premium dark themes, exclusive Liquid Glass effects, acoustic visualizer, and on-device listening insights.",
   },
   about: {
-    title: "About NOVA MUSIC — Story & Developer",
+    title: "About NOVA MUSIC — Design & Developer Story",
     description:
-      "Learn about the story and mission behind NOVA MUSIC, crafted independently for Android by kz4man, Mohamed.",
+      "Learn about the vision and minimalist engineering behind NOVA MUSIC, an independent Android music player crafted by kz4man, Mohamed.",
   },
   support: {
-    title: "Support & FAQ — NOVA MUSIC",
+    title: "Support & FAQ — NOVA MUSIC Android App",
     description:
-      "Find answers on installing the NOVA MUSIC APK, updating versions, Android compatibility, NOVA PRO restoration, and direct support.",
+      "Find answers on installing the NOVA MUSIC Android APK, automatic in-app updates, device compatibility, and direct support options.",
   },
 };
 
