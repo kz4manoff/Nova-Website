@@ -2,10 +2,14 @@ import {
   ensureBroadcastSchema,
   getServerConfigStatus,
   jsonResponse,
+  maskFcmToken,
   verifySessionFromRequest,
   type BroadcastEnv,
 } from "../../../server/broadcast/cryptoAuth";
-import { sendFcmNotificationToTokens } from "../../../server/broadcast/fcmClient";
+import {
+  sendFcmNotificationToTokens,
+  type FcmSendOutcome,
+} from "../../../server/broadcast/fcmClient";
 
 interface SendBroadcastBody {
   title?: string;
@@ -71,7 +75,8 @@ export const onRequestPost = async ({
     return jsonResponse(
       {
         error:
-          "Firebase Service Account credentials are not configured on the server yet. Add FIREBASE_SERVICE_ACCOUNT_JSON (or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) in Cloudflare Pages Environment Variables.",
+          config.fcmError ??
+          "Firebase Service Account credentials are not configured on the server yet. Add FIREBASE_SERVICE_ACCOUNT_JSON in Cloudflare Pages Environment Variables.",
         config,
       },
       503
@@ -226,6 +231,7 @@ export const onRequestPost = async ({
     failureCount: number;
     invalidTokens: string[];
     errors: string[];
+    outcomes: FcmSendOutcome[];
   };
 
   try {
@@ -303,6 +309,28 @@ export const onRequestPost = async ({
       createdAt
     )
     .run();
+
+  // Persist per-device broadcast delivery records (masked tokens only)
+  for (const outcome of sendResult.outcomes.slice(0, 100)) {
+    const deliveryStatus = outcome.ok
+      ? "delivered"
+      : outcome.invalidToken
+      ? "pruned"
+      : "failed";
+    await env.NOVA_DB.prepare(
+      `INSERT INTO broadcast_deliveries (id, broadcast_id, token_masked, status, error_message, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        crypto.randomUUID(),
+        broadcastId,
+        maskFcmToken(outcome.token),
+        deliveryStatus,
+        outcome.errorMessage ? outcome.errorMessage.slice(0, 200) : null,
+        createdAt
+      )
+      .run();
+  }
 
   return jsonResponse({
     deduplicated: false,

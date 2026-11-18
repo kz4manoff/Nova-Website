@@ -2,7 +2,10 @@ export interface BroadcastConfigStatus {
   adminCodeConfigured: boolean;
   sessionSecretConfigured: boolean;
   d1Configured: boolean;
+  d1Error?: string | null;
   fcmConfigured: boolean;
+  fcmSource?: "firebase_service_account_json" | "legacy_env_vars" | "none";
+  fcmError?: string | null;
   missing: string[];
 }
 

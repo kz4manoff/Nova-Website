@@ -556,20 +556,32 @@ export const NovaControlPage: React.FC = () => {
       {/* Server Readiness Banner */}
       {activeConfig && activeConfig.missing.length > 0 && (
         <div
-          role="status"
-          className="rounded-3xl bg-amber-500/10 border border-amber-400/25 p-6 space-y-3"
+          role={activeConfig.fcmError ? "alert" : "status"}
+          className={`rounded-3xl border p-6 space-y-3 ${
+            activeConfig.fcmError && activeConfig.fcmSource !== "none"
+              ? "bg-red-500/10 border-red-400/30"
+              : "bg-amber-500/10 border-amber-400/25"
+          }`}
         >
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
+            <AlertCircle
+              className={`w-5 h-5 shrink-0 mt-0.5 ${
+                activeConfig.fcmError && activeConfig.fcmSource !== "none"
+                  ? "text-red-300"
+                  : "text-amber-300"
+              }`}
+            />
             <div className="space-y-1.5 text-xs text-amber-100 leading-relaxed">
               <p className="text-sm font-semibold text-white">
-                Backend Configuration Incomplete
+                {activeConfig.fcmError && activeConfig.fcmSource !== "none"
+                  ? "Firebase Service Account Configuration Error"
+                  : "Backend Configuration Incomplete"}
               </p>
-              <p className="text-amber-200/90">
+              <p className="text-zinc-200/90">
                 Real FCM delivery and persistent token storage require the
                 following Cloudflare Pages bindings / environment variables:
               </p>
-              <ul className="space-y-1 pt-1 font-mono text-[11px] text-amber-100">
+              <ul className="space-y-1 pt-1 font-mono text-[11px] text-white">
                 {activeConfig.missing.map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
@@ -631,8 +643,12 @@ export const NovaControlPage: React.FC = () => {
           </p>
           <p className="text-xs text-zinc-500">
             {activeConfig?.fcmConfigured
-              ? "FCM HTTP v1 connected"
-              : "Waiting for FCM credentials"}
+              ? activeConfig.fcmSource === "firebase_service_account_json"
+                ? "FCM HTTP v1 ready (Service Account JSON)"
+                : "FCM HTTP v1 ready (Fallback env vars)"
+              : activeConfig?.fcmError && activeConfig.fcmSource !== "none"
+              ? "Invalid Firebase Service Account config"
+              : "Waiting for FIREBASE_SERVICE_ACCOUNT_JSON"}
           </p>
         </div>
 

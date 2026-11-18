@@ -44,3 +44,15 @@ CREATE TABLE IF NOT EXISTS broadcast_auth_attempts (
   window_start INTEGER NOT NULL,
   locked_until INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS broadcast_deliveries (
+  id TEXT PRIMARY KEY,
+  broadcast_id TEXT NOT NULL,
+  token_masked TEXT NOT NULL,
+  status TEXT NOT NULL,
+  error_message TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_broadcast_deliveries_broadcast
+  ON broadcast_deliveries (broadcast_id, created_at DESC);

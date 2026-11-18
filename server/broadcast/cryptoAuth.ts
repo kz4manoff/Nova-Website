@@ -4,6 +4,7 @@
  *
  * Runs exclusively on the server (Cloudflare Pages Functions). Never import into frontend code.
  */
+import { inspectFirebaseConfig } from "./fcmClient";
 
 export interface D1PreparedStatementLike {
   bind(...values: unknown[]): D1PreparedStatementLike;
@@ -90,7 +91,18 @@ export function jsonResponse(
   });
 }
 
+const initializedD1Instances = new WeakSet<object>();
+
+export function maskFcmToken(token: string): string {
+  if (token.length <= 14) return "***";
+  return `${token.slice(0, 8)}...${token.slice(-6)}`;
+}
+
 export async function ensureBroadcastSchema(db: D1DatabaseLike): Promise<void> {
+  if (initializedD1Instances.has(db)) {
+    return;
+  }
+
   await db
     .prepare(
       `CREATE TABLE IF NOT EXISTS fcm_devices (
@@ -149,6 +161,27 @@ export async function ensureBroadcastSchema(db: D1DatabaseLike): Promise<void> {
       )`
     )
     .run();
+
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS broadcast_deliveries (
+        id TEXT PRIMARY KEY,
+        broadcast_id TEXT NOT NULL,
+        token_masked TEXT NOT NULL,
+        status TEXT NOT NULL,
+        error_message TEXT,
+        created_at TEXT NOT NULL
+      )`
+    )
+    .run();
+
+  await db
+    .prepare(
+      "CREATE INDEX IF NOT EXISTS idx_broadcast_deliveries_broadcast ON broadcast_deliveries (broadcast_id, created_at DESC)"
+    )
+    .run();
+
+  initializedD1Instances.add(db);
 }
 
 export async function sha256Hex(input: string): Promise<string> {
@@ -471,41 +504,32 @@ export async function clearAuthFailures(
   }
 }
 
-export function getServerConfigStatus(env: BroadcastEnv) {
+export function getServerConfigStatus(
+  env: BroadcastEnv,
+  d1Verification?: { ok: boolean; error: string | null }
+) {
   const adminCodeConfigured = Boolean(getAdminCode(env));
   const sessionSecretConfigured = Boolean(getSessionSecret(env));
-  const d1Configured = Boolean(env?.NOVA_DB);
+  const d1Bound = Boolean(env?.NOVA_DB && typeof env.NOVA_DB.prepare === "function");
+  const d1Configured = d1Verification ? d1Verification.ok : d1Bound;
+  const d1Error = d1Verification
+    ? d1Verification.error
+    : d1Bound
+    ? null
+    : "NOVA_DB (Cloudflare D1 binding) is missing from Cloudflare Pages Functions env.";
 
-  let fcmConfigured = false;
-  const serviceAccountJson = resolveEnvVar(env, "FIREBASE_SERVICE_ACCOUNT_JSON");
-  if (serviceAccountJson) {
-    try {
-      const parsed = JSON.parse(serviceAccountJson) as {
-        project_id?: string;
-        client_email?: string;
-        private_key?: string;
-      };
-      fcmConfigured = Boolean(
-        parsed.project_id && parsed.client_email && parsed.private_key
-      );
-    } catch {
-      fcmConfigured = false;
-    }
-  } else {
-    fcmConfigured = Boolean(
-      resolveEnvVar(env, "FIREBASE_PROJECT_ID") &&
-        resolveEnvVar(env, "FIREBASE_CLIENT_EMAIL") &&
-        resolveEnvVar(env, "FIREBASE_PRIVATE_KEY")
-    );
-  }
+  const fcmResolution = inspectFirebaseConfig(env);
 
   const missing: string[] = [];
   if (!adminCodeConfigured) missing.push("NOVA_BROADCAST_ADMIN_CODE");
   if (!sessionSecretConfigured) missing.push("NOVA_BROADCAST_SESSION_SECRET");
-  if (!d1Configured) missing.push("NOVA_DB (Cloudflare D1 binding)");
-  if (!fcmConfigured) {
+  if (!d1Configured) {
+    missing.push(d1Error || "NOVA_DB (Cloudflare D1 binding)");
+  }
+  if (!fcmResolution.configured) {
     missing.push(
-      "FIREBASE_SERVICE_ACCOUNT_JSON (or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)"
+      fcmResolution.error ||
+        "FIREBASE_SERVICE_ACCOUNT_JSON (preferred single secret)"
     );
   }
 
@@ -513,7 +537,32 @@ export function getServerConfigStatus(env: BroadcastEnv) {
     adminCodeConfigured,
     sessionSecretConfigured,
     d1Configured,
-    fcmConfigured,
+    d1Error,
+    fcmConfigured: fcmResolution.configured,
+    fcmSource: fcmResolution.source,
+    fcmError: fcmResolution.error,
     missing,
   };
+}
+
+export async function checkServerConfigStatus(env: BroadcastEnv) {
+  if (!env?.NOVA_DB || typeof env.NOVA_DB.prepare !== "function") {
+    return getServerConfigStatus(env, {
+      ok: false,
+      error:
+        "NOVA_DB (Cloudflare D1 binding) is not attached to this deployment. Bind NOVA_DB under Settings -> Bindings -> Production and retry deployment.",
+    });
+  }
+
+  try {
+    await env.NOVA_DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+    await ensureBroadcastSchema(env.NOVA_DB);
+    return getServerConfigStatus(env, { ok: true, error: null });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "Unknown D1 error";
+    return getServerConfigStatus(env, {
+      ok: false,
+      error: `NOVA_DB binding detected, but D1 query failed: ${detail.slice(0, 120)}`,
+    });
+  }
 }

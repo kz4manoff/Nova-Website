@@ -1,15 +1,11 @@
 import {
+  checkServerConfigStatus,
   ensureBroadcastSchema,
-  getServerConfigStatus,
   jsonResponse,
+  maskFcmToken,
   verifySessionFromRequest,
   type BroadcastEnv,
 } from "../../../server/broadcast/cryptoAuth";
-
-function maskToken(token: string): string {
-  if (token.length <= 14) return "***";
-  return `${token.slice(0, 8)}...${token.slice(-6)}`;
-}
 
 export const onRequestGet = async ({
   request,
@@ -33,9 +29,9 @@ export const onRequestGet = async ({
     return jsonResponse({ error: "Unauthorized. Admin authentication required." }, 401);
   }
 
-  const config = getServerConfigStatus(env);
+  const config = await checkServerConfigStatus(env);
 
-  if (!env.NOVA_DB) {
+  if (!env.NOVA_DB || !config.d1Configured) {
     return jsonResponse({
       config,
       stats: {
@@ -131,7 +127,7 @@ export const onRequestGet = async ({
       invalidTokensRemoved: historyStats?.invalidTokensRemoved ?? 0,
     },
     devices: (recentDeviceRows.results ?? []).map((row) => ({
-      maskedToken: maskToken(row.token),
+      maskedToken: maskFcmToken(row.token),
       deviceId: row.device_id ? `${row.device_id.slice(0, 8)}...` : null,
       appVersion: row.app_version ?? "Unknown",
       androidSdk: row.android_sdk,

@@ -1,5 +1,5 @@
 import {
-  getServerConfigStatus,
+  checkServerConfigStatus,
   jsonResponse,
   verifySessionFromRequest,
   type BroadcastEnv,
@@ -13,7 +13,7 @@ export const onRequestGet = async ({
   env: BroadcastEnv;
 }): Promise<Response> => {
   const session = await verifySessionFromRequest(request, env);
-  const config = getServerConfigStatus(env);
+  const config = await checkServerConfigStatus(env);
 
   return jsonResponse({
     authenticated: session.valid,

@@ -25,10 +25,10 @@ Configure these under **Settings -> Environment Variables** (encrypt as **Secret
 | --- | --- | --- |
 | `NOVA_BROADCAST_ADMIN_CODE` | Yes | Personal admin secret code required to sign into `/nova-control` |
 | `NOVA_BROADCAST_SESSION_SECRET` | Yes | Dedicated HMAC-SHA256 key for signing & verifying `HttpOnly` admin session cookies (never shares or falls back to any default) |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Yes (or 3 fields below) | Single-line Firebase Service Account JSON for FCM HTTP v1 |
-| `FIREBASE_PROJECT_ID` | Alternative to JSON | Firebase project ID |
-| `FIREBASE_CLIENT_EMAIL` | Alternative to JSON | Firebase service account `client_email` |
-| `FIREBASE_PRIVATE_KEY` | Alternative to JSON | Firebase service account `private_key` (PEM) |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Yes (Preferred) | Single Cloudflare Pages secret containing the complete Firebase Service Account JSON (`project_id`, `client_email`, `private_key`) |
+| `FIREBASE_PROJECT_ID` | Optional fallback | Only used if `FIREBASE_SERVICE_ACCOUNT_JSON` is not configured |
+| `FIREBASE_CLIENT_EMAIL` | Optional fallback | Only used if `FIREBASE_SERVICE_ACCOUNT_JSON` is not configured |
+| `FIREBASE_PRIVATE_KEY` | Optional fallback | Only used if `FIREBASE_SERVICE_ACCOUNT_JSON` is not configured |
 | `NOVA_ANDROID_REG_KEY` | Optional | Shared header `X-Nova-App-Key` checked on `/api/broadcast/devices/register` |
 
 ### How to get the Firebase Service Account
