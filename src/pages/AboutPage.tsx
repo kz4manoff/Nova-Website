@@ -3,6 +3,7 @@ import { ArrowRight, Code2, Compass, HeartHandshake } from "lucide-react";
 import { siteConfig } from "../config/siteConfig";
 import { ScrollReveal } from "../components/ScrollReveal";
 import { NovaLogo } from "../components/NovaLogo";
+import { ContactDeveloperSection } from "../components/ContactDeveloperSection";
 import type { AppRoute } from "../types/navigation";
 
 interface AboutPageProps {
@@ -109,6 +110,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
           </div>
         </section>
       </ScrollReveal>
+      {/* Contact Developer */}
+      <ContactDeveloperSection compact />
     </div>
   );
 };

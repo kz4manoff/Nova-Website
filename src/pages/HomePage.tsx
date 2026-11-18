@@ -16,9 +16,11 @@ import {
 import { siteConfig, officialLogoSrc } from "../config/siteConfig";
 import { mediaAssets } from "../assets/media";
 import { useLatestRelease } from "../hooks/useLatestRelease";
+import { useDownloadStats } from "../context/DownloadStatsContext";
 import { AndroidPlayerMockup } from "../components/AndroidPlayerMockup";
 import { NovaLogo } from "../components/NovaLogo";
 import { ScrollReveal } from "../components/ScrollReveal";
+import { ContactDeveloperSection } from "../components/ContactDeveloperSection";
 import type { AppRoute } from "../types/navigation";
 
 interface HomePageProps {
@@ -34,6 +36,7 @@ const themeSwatches = [
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   const shouldReduceMotion = useReducedMotion();
   const { releaseInfo } = useLatestRelease();
+  const { stats, isLoadingStats, trackDownloadStart } = useDownloadStats();
   const [selectedSurface, setSelectedSurface] = useState<"obsidian" | "midnight" | "frosted">("midnight");
   const [glassIntensity, setGlassIntensity] = useState<"balanced" | "deep">("deep");
 
@@ -97,7 +100,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     href={releaseInfo.verifiedApkUrl}
                     download={releaseInfo.apkFileName ?? "Nova.Music.apk"}
                     rel="noopener noreferrer"
-                    onClick={() => onNavigate("download")}
+                    onClick={() => {
+                      if (releaseInfo.manifest && releaseInfo.verifiedApkUrl) {
+                        void trackDownloadStart(
+                          releaseInfo.manifest.latestVersion,
+                          releaseInfo.verifiedApkUrl
+                        );
+                      }
+                      onNavigate("download");
+                    }}
                     className="liquid-button-primary inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                   >
                     <Download className="w-4 h-4" />
@@ -142,6 +153,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                             : ""
                         }`
                       : "Android 8.0+"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block mb-0.5">Total Downloads</span>
+                  <span className="text-zinc-200 font-medium font-mono tabular-nums">
+                    {stats
+                      ? stats.totalDownloads.toLocaleString()
+                      : isLoadingStats
+                      ? "Loading..."
+                      : "Unavailable"}
                   </span>
                 </div>
                 <div>
@@ -579,6 +600,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </ScrollReveal>
       </section>
 
+      {/* Contact Developer Section */}
+      <section className="max-w-6xl mx-auto px-6 py-8">
+        <ContactDeveloperSection />
+      </section>
+
       {/* Final Conversion Band */}
       <section className="max-w-6xl mx-auto px-6 pt-10 pb-8">
         <ScrollReveal>
@@ -602,7 +628,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   href={releaseInfo.verifiedApkUrl}
                   download={releaseInfo.apkFileName ?? "Nova.Music.apk"}
                   rel="noopener noreferrer"
-                  onClick={() => onNavigate("download")}
+                  onClick={() => {
+                    if (releaseInfo.manifest && releaseInfo.verifiedApkUrl) {
+                      void trackDownloadStart(
+                        releaseInfo.manifest.latestVersion,
+                        releaseInfo.verifiedApkUrl
+                      );
+                    }
+                    onNavigate("download");
+                  }}
                   className="liquid-button-primary inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
                 >
                   <Download className="w-4 h-4" />

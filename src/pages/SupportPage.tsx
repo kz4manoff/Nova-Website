@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { siteConfig } from "../config/siteConfig";
 import { ScrollReveal } from "../components/ScrollReveal";
+import { ContactDeveloperSection } from "../components/ContactDeveloperSection";
 
 interface FaqEntry {
   id: string;
@@ -443,6 +444,10 @@ export const SupportPage: React.FC = () => {
             )}
           </section>
         </ScrollReveal>
+      </div>
+
+      <div className="mt-10">
+        <ContactDeveloperSection compact />
       </div>
     </div>
   );

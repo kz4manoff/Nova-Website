@@ -1,0 +1,19 @@
+# Example Cloudflare Pages / D1 configuration reference.
+# For Cloudflare Pages GitHub deployments, bind your D1 database in the
+# Cloudflare Dashboard under:
+#   Pages -> Your Project -> Settings -> Functions -> D1 database bindings
+#   Variable name: NOVA_DB
+#
+# Or, if deploying directly with Wrangler CLI, copy this file to wrangler.toml
+# and replace <YOUR_D1_DATABASE_ID> with the ID returned by:
+#   npx wrangler d1 create nova-music-stats
+
+name = "nova-music-website"
+compatibility_date = "2026-11-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "NOVA_DB"
+database_name = "nova-music-stats"
+database_id = "<YOUR_D1_DATABASE_ID>"
+migrations_dir = "migrations"

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { siteConfig } from "../config/siteConfig";
 import { useLatestRelease } from "../hooks/useLatestRelease";
+import { useDownloadStats } from "../context/DownloadStatsContext";
 import {
   downloadVerifiedApk,
   formatBytes,
@@ -62,6 +63,8 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
     lastCheckedAt,
     checkForLatestVersion,
   } = useLatestRelease();
+  const { stats, isLoadingStats, refreshStats, trackDownloadStart } =
+    useDownloadStats();
 
   const [copiedHash, setCopiedHash] = useState(false);
   const [downloadProgress, setDownloadProgress] =
@@ -113,15 +116,29 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
     const fileName =
       releaseInfo.apkFileName ??
       `NOVA-MUSIC-v${manifest?.latestVersion ?? "release"}.apk`;
+    const verifiedUrl = releaseInfo.verifiedApkUrl;
+    const versionLabel = manifest?.latestVersion ?? "latest";
+    let recordedThisDownload = false;
 
     try {
       await downloadVerifiedApk({
-        apkUrl: releaseInfo.verifiedApkUrl,
+        apkUrl: verifiedUrl,
         fileName,
         expectedSha256: releaseInfo.verifiedSha256,
         expectedBytes: releaseInfo.fileSizeBytes,
         signal: controller.signal,
-        onProgress: (progress) => setDownloadProgress(progress),
+        onProgress: (progress) => {
+          setDownloadProgress(progress);
+          if (
+            !recordedThisDownload &&
+            (progress.phase === "downloading" ||
+              progress.phase === "browser_handoff" ||
+              progress.phase === "complete")
+          ) {
+            recordedThisDownload = true;
+            void trackDownloadStart(versionLabel, verifiedUrl);
+          }
+        },
       });
     } catch (err) {
       setDownloadProgress(null);
@@ -247,7 +264,10 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
 
               <button
                 type="button"
-                onClick={() => void checkForLatestVersion(true)}
+                onClick={() => {
+                  void checkForLatestVersion(true);
+                  void refreshStats();
+                }}
                 disabled={isChecking}
                 className="inline-flex items-center justify-center gap-2 px-5 py-4 rounded-2xl bg-white/[0.08] hover:bg-white/[0.13] border border-white/15 text-sm font-medium text-white whitespace-nowrap shrink-0 transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
               >
@@ -360,11 +380,22 @@ export const DownloadPage: React.FC<DownloadPageProps> = ({ onNavigate }) => {
           )}
 
           {/* Release Metadata Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             <div className="space-y-1">
               <p className="text-xs text-zinc-500">Latest Version</p>
               <p className="font-mono text-sm font-medium text-white tabular-nums">
                 {displayVersion}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-500">Total Downloads</p>
+              <p className="font-mono text-sm font-medium text-sky-300 tabular-nums">
+                {stats
+                  ? stats.totalDownloads.toLocaleString()
+                  : isLoadingStats
+                  ? "Loading..."
+                  : "Unavailable"}
               </p>
             </div>
 

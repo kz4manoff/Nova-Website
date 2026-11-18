@@ -9,6 +9,7 @@ import { ProPage } from "./pages/ProPage";
 import { AboutPage } from "./pages/AboutPage";
 import { SupportPage } from "./pages/SupportPage";
 import { applyPageSeo } from "./utils/seo";
+import { DownloadStatsProvider } from "./context/DownloadStatsContext";
 import { pathToRoute, routeToPath, type AppRoute } from "./types/navigation";
 
 const seoByRoute: Record<
@@ -97,24 +98,26 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#050507] text-[#F4F6FB]">
-      <Navbar activeRoute={activeRoute} onNavigate={navigate} />
+    <DownloadStatsProvider>
+      <div className="min-h-screen flex flex-col bg-[#050507] text-[#F4F6FB]">
+        <Navbar activeRoute={activeRoute} onNavigate={navigate} />
 
-      <div className="flex-1">
-        <AnimatePresence mode="wait">
-          <motion.main
-            key={activeRoute}
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {renderPage()}
-          </motion.main>
-        </AnimatePresence>
+        <div className="flex-1">
+          <AnimatePresence mode="wait">
+            <motion.main
+              key={activeRoute}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {renderPage()}
+            </motion.main>
+          </AnimatePresence>
+        </div>
+
+        <Footer onNavigate={navigate} />
       </div>
-
-      <Footer onNavigate={navigate} />
-    </div>
+    </DownloadStatsProvider>
   );
 }
